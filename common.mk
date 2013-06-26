@@ -30,6 +30,10 @@ ifeq ($(TARGET_BOARD_PLATFORM), msm8974)
     common_flags += -DMDSS_TARGET
 endif
 
+ifeq ($(TARGET_USES_SECURE_MM_HEAP),true)
+    common_flags += -DSECURE_MM_HEAP
+endif
+
 common_deps  :=
 kernel_includes :=
 

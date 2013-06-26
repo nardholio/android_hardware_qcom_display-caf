@@ -139,7 +139,12 @@ inline bool OvMem::open(uint32_t numbufs,
     data.uncached = true;
 
     err = mAlloc->allocate(data, allocFlags);
-#ifdef OLD
+#ifdef SECURE_MM_HEAP
+    if (err != 0) {
+        ALOGE("OvMem: Error allocating memory");
+        return false;
+    }
+#else
     //see if we can fallback to other heap
     //we can try MM_HEAP once if it's not secure playback
     if (err != 0 && !isSecure) {
@@ -151,11 +156,6 @@ inline bool OvMem::open(uint32_t numbufs,
         }
     } else if (err != 0) {
         ALOGE("OvMem: error allocating memory can not fall back");
-        return false;
-    }
-#else
-    if (err != 0) {
-        ALOGE("OvMem: Error allocating memory");
         return false;
     }
 #endif
