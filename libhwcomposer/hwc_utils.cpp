@@ -258,9 +258,9 @@ void getActionSafePosition(hwc_context_t *ctx, int dpy, uint32_t& x,
     char value[PROPERTY_VALUE_MAX];
 
     // Apply action safe parameters
-    property_get("hw.actionsafe.width", value, "0");
+    property_get("persist.sys.actionsafe.width", value, "0");
     int asWidthRatio = atoi(value);
-    property_get("hw.actionsafe.height", value, "0");
+    property_get("persist.sys.actionsafe.height", value, "0");
     int asHeightRatio = atoi(value);
     // based on the action safe ratio, get the Action safe rectangle
     asW = fbWidth * (1.0f -  asWidthRatio / 100.0f);
@@ -315,6 +315,8 @@ bool isAlphaPresent(hwc_layer_1_t const* layer) {
         switch(format) {
         case HAL_PIXEL_FORMAT_RGBA_8888:
         case HAL_PIXEL_FORMAT_BGRA_8888:
+        case HAL_PIXEL_FORMAT_RGBA_5551:
+        case HAL_PIXEL_FORMAT_RGBA_4444:
             // In any more formats with Alpha go here..
             return true;
         default : return false;
@@ -329,7 +331,7 @@ void setListStats(hwc_context_t *ctx,
     ctx->listStats[dpy].numAppLayers = list->numHwLayers - 1;
     ctx->listStats[dpy].fbLayerIndex = list->numHwLayers - 1;
     ctx->listStats[dpy].skipCount = 0;
-    ctx->listStats[dpy].needsAlphaScale = false;
+    ctx->listStats[dpy].numAlphaScaledLayers = 0;
     ctx->listStats[dpy].preMultipliedAlpha = false;
     ctx->listStats[dpy].yuvCount = 0;
     char property[PROPERTY_VALUE_MAX];
@@ -357,8 +359,9 @@ void setListStats(hwc_context_t *ctx,
         if(layer->blending == HWC_BLENDING_PREMULT)
             ctx->listStats[dpy].preMultipliedAlpha = true;
 
-        if(!ctx->listStats[dpy].needsAlphaScale)
-            ctx->listStats[dpy].needsAlphaScale = isAlphaScaled(layer);
+        if(isAlphaScaled(layer)) {
+            ctx->listStats[dpy].numAlphaScaledLayers += 1;
+        }
     }
     if(ctx->listStats[dpy].yuvCount > 0) {
         if (property_get("hw.cabl.yuv", property, NULL) > 0) {
@@ -806,6 +809,20 @@ int configureLowRes(hwc_context_t *ctx, hwc_layer_1_t *layer,
     int rotFlags = ovutils::ROT_FLAGS_NONE;
     Whf whf(hnd->width, hnd->height,
             getMdpFormat(hnd->format), hnd->size);
+
+    uint32_t x = dst.left, y  = dst.top;
+    uint32_t w = dst.right - dst.left;
+    uint32_t h = dst.bottom - dst.top;
+
+    //check for actionsafe for video on external
+    if(dpy && isYuvBuffer(hnd)) {
+        getActionSafePosition(ctx, dpy, x, y, w, h);
+        // Convert dim to hwc_rect_t
+        dst.left = x;
+        dst.top = y;
+        dst.right = w + x;
+        dst.bottom = h + y;
+    }
 
     if(isYuvBuffer(hnd) && ctx->mMDP.version >= qdutils::MDP_V4_2 &&
                 ctx->mMDP.version < qdutils::MDSS_V5) {
