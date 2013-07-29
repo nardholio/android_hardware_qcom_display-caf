@@ -60,21 +60,7 @@ class QCCompositionType : public Singleton <QCCompositionType>
 
 inline QCCompositionType::QCCompositionType()
 {
-    char property[PROPERTY_VALUE_MAX];
-    mCompositionType = COMPOSITION_TYPE_GPU;
-    if (property_get("debug.composition.type", property, "gpu") > 0) {
-        if ((strncmp(property, "mdp", 3)) == 0) {
-            mCompositionType = COMPOSITION_TYPE_MDP;
-        } else if ((strncmp(property, "c2d", 3)) == 0) {
-            mCompositionType = COMPOSITION_TYPE_C2D;
-        } else if ((strncmp(property, "dyn", 3)) == 0) {
-#ifdef USE_MDP3
-            mCompositionType = COMPOSITION_TYPE_DYN | COMPOSITION_TYPE_MDP;
-#else
-            mCompositionType = COMPOSITION_TYPE_DYN | COMPOSITION_TYPE_C2D;
-#endif
-        }
-    }
+    mCompositionType = COMPOSITION_TYPE_CPU;
 }
 
 }; //namespace qdutils
